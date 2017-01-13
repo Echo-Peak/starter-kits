@@ -1,0 +1,106 @@
+system:
+  socket: true
+  port: 5100
+  frontPort: 5108
+  colors: true
+  forkable: true
+  processName: starter-kit
+  argParser: true
+  allowChildOutput: true
+  beep: true
+gulp:
+  mainTask: init
+  socket: true
+  tasks:
+    - scss
+    - jadeify
+    - watches
+  paths:
+    scss:
+      name: styles.css
+      concat: true
+      src: ./*.scss
+      dest: ./
+      hooks:
+        - imDone
+    jadeify:
+      src: ./*.jade
+      concat: false
+      dest: ./
+      hooks:
+        - imDone
+    watches:
+      src:
+        - ./*.scss
+        - ./*.jade
+      hooks:
+        - imDone   
+processes: # default bin = node
+  backup:
+    runOnStart: false
+    enable: false
+    src: ./
+    dest: ./backup
+    every: 60 
+    script: ./scripts/backup.js
+  firebase:
+    runOnStart: false
+    enable: false
+    databaseURL: http://someurl.com
+    serviceKey: ./admin.json
+    workspace: ./DB
+    use: json
+    script: ./scripts/firebase-client.js
+  database:
+    enable: false
+    use: mongo-db
+    url: http://someurl
+    db:  defaultDB
+    port: 27527
+    script: ./some/path/file.js
+  webpack-main:
+    enable: false
+    runOnStart: true
+    socket: true
+    bin: webpack
+    exclude:
+      - node_modules
+    fileTypes:
+      - jsx
+      - js
+    mode: node
+    entry: ./entry
+    output: './out'
+    filename: '[name].js'
+    tsconfig: ''
+    directorys:
+      - ./components
+    loaders:
+      javascript:
+        test: jsx js
+        include: $dir/src
+        loader: babel
+        config:
+          presets:
+            - es2015
+            - react
+            - stage-0
+          plugins: 
+            - transform-es2015-modules-commonjs
+            - transform-decorators-legacy
+            - transform-class-properties
+
+    vendors:
+      - react
+      - react-dom
+    plugins:
+      - OccurrenceOrderPlugin
+      - UglifyJsPlugin
+  testing:
+    runOnStart: true
+    enable: true
+    socket: false
+    watch: true
+    use: mocha
+    assertion: chai
+    script: ./tests

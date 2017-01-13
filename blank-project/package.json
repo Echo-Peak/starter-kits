@@ -1,0 +1,32 @@
+{
+  "name": "start-kit/blank-project",
+  "version": "1.0.0",
+  "description": "Blank starter kit",
+  "author": "Michael Wheeler",
+  "license": "MIT",
+  "devDependencies":{
+    "gulp":"*",
+    "firebase":"*",
+    "webpack":"*",
+    "browser-sync":"*",
+    "connect-history-api-fallback":"*",
+    "gulp-plumber":"*",
+    "gulp-sass":"*",
+    "gulp-concat":"*",
+    "gulp-jade":"*",
+    "gulp-watch":"*",
+    "cson":"*",
+    "gulp-transform":"*",
+    "gulp-rename":"*",
+    "sharp":"*",
+    "react-markdown":"*",
+    "json-loader":"*",
+    "babel-loader":"*",
+    "babel-core":"*",
+    "flightplan":"*",
+    "mocha":"*",
+    "chai":"*",
+    "level":"*",
+    "mkdir":"*"
+  }
+}
