@@ -5,26 +5,38 @@ var path = require('path');
 let c = fs.readFileSync('./build-config.yml').toString();
 let config = yamlify.safeLoad(c);
 process.env.CONFIG = JSON.stringify(config);
-
-
-let processOrchestrator = require('./scripts/process-orchestrator')(config);
-let commandInterface = require('./scripts/command-interface')(config);
+let appRepl = require('./scripts/repl');
+//let Pipeline = require('./scripts/pipeline-parser');
+//let processOrchestrator = require('./scripts/process-orchestrator')(config);
+//let commandInterface = require('./scripts/command-interface')(config);
 let server = require('./scripts/server')(config);
 let colors = require('colors');
 let browserSync = require('browser-sync').create();
 var plumber = require('gulp-plumber');
 var sassify = require('gulp-sass');
 var concat = require('gulp-concat');
-var jadeify = require('gulp-jade');
+var gulpJade = require('gulp-jade');
 var watch = require('gulp-watch');
+const gulpIf = require('gulp-if');
 let socketIOClient = require('socket.io-client');
 let child_process = require('child_process');
 let jade = require('jade');
 let autoprefix = require('gulp-autoprefixer');
 let $argv = {}
 let stdoutFormat = require('./scripts/stdout-format');
+let uuid = require('uuid');
+let integatedScripts = require('./scripts/intergrated-scripts');
+
+let app = global.app = new appRepl(config);
+let Spawner = require('./scripts/spawner')(app);
 
 let Clients = [];
+let fnmap = {
+  imdone,
+  jadeify,
+  scss,
+  exit
+}
 
 let dbService;
 let socket;
@@ -45,27 +57,135 @@ if(config.gulp.socket){
   socket.emit('process-connected', {name:'main', pid:process.pid})
 }
 
-if(config.processes.backup.enable){
-  let backup = require('./scripts/backup');
-  backup.every(config.backup.every);
-}
-if(config.processes.database.enable){
-  // todo: add db service. install dynamicly or let user install manually?
+
+// if(config.processes.firebase.database){
+//   console.log(`firebase enabled`.yellow)
+//   console.log(`firebase DB workspace created at ${config.firebase.workspace}`.yellow);
+//   console.log(`use /firebase to connect`.yellow);
+//   require('./scripts/firebase-client');
+// }
+
+for(let iScript in integatedScripts){
+  let iConfig = integatedScripts[iScript];
+  let getOptions  = config.integrated[iScript];
+
+  let iEnabled = getOptions && typeof getOptions.enabled === 'boolean' ? getOptions.enabled : false;
+  let hasScript = iConfig.script ? true : false;
+  if(iEnabled && hasScript){
+    //console.log(99,iEnabled , hasScript , iConfig)
+    Spawner.createWrapper(iScript , iConfig , config.system.socket , config.system.port);
+  }
 }
 
-if(config.processes.firebase.database){
-  console.log(`firebase enabled`.yellow)
-  console.log(`firebase DB workspace created at ${config.firebase.workspace}`.yellow);
-  console.log(`use /firebase to connect`.yellow);
-  require('./scripts/firebase-client');
-  
+//console.log(tasks)
 
+let isFunction = (fnName) => typeof fnmap[fnName] !== 'function'
+let validTask = (taskObj) => {
+  if(typeof taskObj[0] === 'string' && taskObj[0].length){
+    let isUndifinded = typeof taskObj[1] !== void 0;
+    let isObject = typeof taskObj[1] === 'object' && taskObj[1] !== null;
+    let exists = taskObj[1] ? true : false;
+    let notEmpty = Object.keys(taskObj[1]) ? true : false;
+    let notArray = !Array.isArray(taskObj[1]);
+
+    if(isUndifinded && exists && isObject && notArray  && notEmpty){
+      return true
+    }else{
+      return false
+    }
+    return true
+  }
 }
 
+function taskRunner(taskname ,tasks, watch , immediate){
+  let fn  = fnmap[taskname];
+  //console.log(tasks);
+
+  if(tasks && Array.isArray(tasks)){
+    let validate = tasks.every(validTask);
+    console.log('validating',validate);
+  }
+  // if(!isFunction(fn)){
+  //   console.log(`'${`${taskname}`.yellow}' is not a function. Skipping...`);
+  //   return
+  // }
+
+}
+//maps functions to be called by string below
 gulp.task('default' ,function(done){
-  console.log('Using default tasks'.yellow.bold)
-  console.log('foo')
+  console.log('Using default tasks'.yellow)
+  console.log('foo');
+  // let gulpTasks = Object.keys(config.gulp.tasks);
+  // let tasks = gulpTasks.map(e => config.gulp.tasks[e]);
+  // tasks.forEach((task , i) => {
+  //   let args = [gulpTasks[i] , task.tasks, task.watch , task.runOnStart];
+  //   taskRunner(...args)
+  //   });
+  //console.log($argv , app.paths)
+  done()
 });
+function update(done){
+  browserSync.reload({stream:true});
+  if(config.gulp.socket){
+    socket.emit('update');
+  }
+ // done();
+}
+function onError(msg){
+  let beep = config.system.beep ? '\u0007' : '';
+  console.log(msg.red , beep)
+}
+
+function exit(taskConfig , done){
+  console.log('exiting');
+  done()
+  //process.exit(0);
+}
+function imdone(taskConfig ,done){
+  let stream = gulp.src(taskConfig.paths)
+  .pipe(gulp.dest(taskConfig.dest))
+  stream.on('end', function(){
+    update(done)
+    //let after = .split(',').map(e => e.trim());
+  });
+  stream.on('error', onError.bind(taskConfig));
+}
+function jadeify(taskConfig, done){
+  console.log(taskConfig , done);
+  let stream = gulp.src(taskConfig.paths)
+  .pipe(plumber(plumberHandler(done)))
+  .pipe(gulpJade())
+  .pipe(gulp.dest(taskConfig.dest));
+  stream.on('end', function(){
+
+    update();
+    let after = taskConfig.after.forEach(fn => {
+      fnmap[fn].call(this, taskConfig);
+
+      });
+    //let after =
+  });
+  stream.on('error', onError.bind(taskConfig));
+  return stream
+}
+function scss(taskConfig, done){
+
+  let ifConcat = gulpIf(!!taskConfig.concat ,concat(taskConfig.filename || 'styles.css'));
+  let stream = gulp.src(taskConfig.paths)
+  .pipe(plumber(plumberHandler(done)))
+  .pipe(sassify())
+  .pipe(ifConcat)
+  .pipe(autoprefix( {browsers:['last 2 versions'], cascade:false}))
+  .pipe(gulp.dest(taskConfig.dest))
+  stream.on('end', function(){
+    let after = taskConfig.after.forEach(fn => {
+      fnmap[fn].call(this, taskConfig ,done);
+
+    })
+  })
+  stream.on('error', onError.bind(taskConfig))
+}
+
 
 // let currentEnv = $argv.env || config.defaultEnviroment;
 // let using = $argv.use || config.use;
@@ -233,15 +353,16 @@ gulp.task('default' ,function(done){
 //   // done()
 // }
 
-// function plumberHandler(done){
+function plumberHandler(done){
 
-//   return {
-//     errorHandler(err){
-//       console.log((err.message).yellow);
-//       done(err);
-//     }
-//   }
-// }
+  return {
+    errorHandler(err){
+      let beep = config.system.beep ? '\u0007' : '';
+      console.log((err.message).yellow ,beep);
+      done(err);
+    }
+  }
+}
 
 // function _jadeify(done){
 //   let stream;

@@ -1,10 +1,11 @@
-let child_process = require('child_process');
-let  {exec , execSync} = child_process;
 
+
+setInterval(function(){
+console.log('running')
+},5000)
+
+setTimeout(function(){
+  throw new Error('asdnkj')
+},20000)
 // binary proxy
-ZsMo-eXTQ-DZrS
-module.exports = function(config){
-  let {port , forkable} = config.system;
-  
-}
 

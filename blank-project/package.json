@@ -1,9 +1,14 @@
 {
-  "name": "start-kit/blank-project",
+  "name": "start-kit--blank-project",
   "version": "1.0.0",
   "description": "Blank starter kit",
   "author": "Michael Wheeler",
   "license": "MIT",
+  "scripts":{
+    "postinstall":"node ./scripts/post-install.js",
+    "run":"gulp",
+    "revert-config":"node ./scripts/revert-config.js"
+  },
   "devDependencies":{
     "gulp":"*",
     "firebase":"*",
@@ -21,12 +26,20 @@
     "sharp":"*",
     "react-markdown":"*",
     "json-loader":"*",
-    "babel-loader":"*",
-    "babel-core":"*",
     "flightplan":"*",
     "mocha":"*",
     "chai":"*",
     "level":"*",
-    "mkdir":"*"
+    "mkdir":"*",
+     "babel-core":"*",
+    "babel-loader":"*",
+    "babel-preset-stage-0":"*",
+    "babel-preset-es2015":"*",
+    "babel-preset-react":"*",
+    "babel-plugin-transform-es2015-modules-commonjs":"*",
+    "babel-plugin-transform-decorators-legacy":"*",
+    "babel-plugin-transform-class-properties":"*",
+    "react-tap-event-plugin":"*",
+    "questions":"*"
   }
 }

@@ -1,0 +1,75 @@
+// min-width , max-width , font-size
+$xs:360px;
+$sm:420px;
+$md:600px;
+$lg:1280px;
+$xlg:1920px;
+$xxlg:2046px;
+
+$breakpoints: (
+  ('xs', 0px, 360px, 16px),
+  ('sm', 361px, 420px, 16px),
+  ('md', 421px, 600px, 18px),
+  ('lg', 601px, 1280px, 18px),
+  ('xlg', 1281px, 1920px ,20px),
+  ('xxlg', 1921px, 4096px ,20px)
+);
+
+
+@mixin bp($point) {
+  @if type-of($point) == 'number'{
+    @media (max-width: 1600px) {
+       @content; 
+    }
+  }
+
+  @else if type-of($point) == 'string'{
+     @each $width in $breakpoints{
+      @if nth($width ,1) == $point {
+        @media (max-width: 1600px) { @content; }
+      }
+    }
+  } 
+}
+
+@mixin mq($targetScreen) {
+  $getScreen:getScreenFor($targetScreen);
+
+  @media screen and (min-width:nth($getScreen ,2)) and (max-width:nth($getScreen ,3)){
+    @content;
+  }
+}
+// @include mq('sm'){ width:100px}
+
+@mixin dynamicGradient($start , $end , $transTime){
+  background-size: 100%;
+  background-image: -webkit-linear-gradient($start, $end);
+  background-image: linear-gradient($start, $end);
+  position: relative;
+  z-index: 100;
+  &:before {
+    border-radius: inherit;
+    background-image: -webkit-linear-gradient($end, $start);
+    background-image: linear-gradient($end, $start);
+    content: '';
+    display: block;
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    top: 0; left: 0;
+    opacity: 0;
+    z-index: -100;
+    -moz-transition: opacity $transTime ease-in-out;
+    -webkit-transition: opacity $transTime ease-in-out;
+    transition: opacity $transTime ease-in-out;
+  }
+  &:hover {
+    &:before {
+      opacity: 1;
+    }
+  }
+
+}
+@mixin randBg {
+  background:rgb(random(255) , random(255) , random(255));
+}

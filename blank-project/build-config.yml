@@ -2,46 +2,65 @@ system:
   socket: true
   port: 5100
   frontPort: 5108
-  colors: true
   forkable: true
-  processName: starter-kit
+  processName: starter-kitsdsf
   argParser: true
   allowChildOutput: true
   beep: true
+  history: false
+  autoRecover: true
 gulp:
   mainTask: init
   socket: true
   tasks:
-    - scss
-    - jadeify
-    - watches
-  paths:
+    xmas: # task name
+      tasks:
+        - [scss , {one: 23 , cats: 90 , runTwice: true}] # tasks to run in order; <moduleName> <options>
+
+      filename: styles.css
+      runOnStart: true
+      concat: true
+      dest: ./out
+      paths:
+        - ./tests/*.scss
+      watch: true
     scss:
       name: styles.css
+      runOnStart: true
       concat: true
-      src: ./*.scss
-      dest: ./
-      hooks:
-        - imDone
+      dest: ./out
+      paths:
+        - ./tests/*.scss
+      watch: true
     jadeify:
-      src: ./*.jade
       concat: false
-      dest: ./
-      hooks:
-        - imDone
-    watches:
-      src:
-        - ./*.scss
-        - ./*.jade
-      hooks:
-        - imDone   
+      when: 'some condition'
+      watch: true
+      runOnStart: true
+      dest: ./out
+      paths:
+        - ./tests/*.jade
+
+integrated:
+  backup:
+    enabled: true
+    every: 60
+  food:
+    enabled: true
+
 processes: # default bin = node
+  food:
+    enable: true
+    socket: true
+    stdout: true
+    stderr: true
+    script: ./scripts/binary-proxy.js
   backup:
     runOnStart: false
     enable: false
     src: ./
     dest: ./backup
-    every: 60 
+    every: 60
     script: ./scripts/backup.js
   firebase:
     runOnStart: false
@@ -58,21 +77,27 @@ processes: # default bin = node
     db:  defaultDB
     port: 27527
     script: ./some/path/file.js
-  webpack-main:
+
+  webpack:
     enable: false
     runOnStart: true
     socket: true
     bin: webpack
-    exclude:
-      - node_modules
+    node_modules: false
     fileTypes:
       - jsx
       - js
     mode: node
-    entry: ./entry
+    entry: ./entry.js
     output: './out'
     filename: '[name].js'
-    tsconfig: ''
+    resolve:
+      modulesDirectories:
+        - node_modules
+      ext:
+        - js
+        - jsx
+        - json
     directorys:
       - ./components
     loaders:
@@ -85,7 +110,7 @@ processes: # default bin = node
             - es2015
             - react
             - stage-0
-          plugins: 
+          plugins:
             - transform-es2015-modules-commonjs
             - transform-decorators-legacy
             - transform-class-properties

@@ -1,0 +1,29 @@
+//colors
+$primary:#E91E63;
+$secondary:#EC407A;
+$accent1:#AB47BC;
+$accent2:#EF5350;
+$ripples1:rgb(255, 143, 208);
+$about1:#d54cff;
+$about2:#e556ff;
+$work1:#4cafff;
+$header:rgba(0,0,0,0.8);
+
+@mixin randBg {
+  background:rgb(random(255) , random(255) , random(255));
+}
+
+
+//type , min-width , max-width , font-size
+//THIS IS AT DEVICE SCALE 1:1;
+
+
+
+@function getScreenFor($target){
+  @each $width in $breakpoints{
+    @if nth($width ,1) == $target {
+      @return $width;
+    }
+  }
+  @return null;
+}
