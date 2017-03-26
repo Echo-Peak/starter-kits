@@ -1,4 +1,4 @@
-const greet = require('./greet');
+const introduction = require('./greet');
 const varInsideEnv = require('./process-env-parser');
 let socketIOClient = require('socket.io-client');
 let http = require('http');
@@ -12,22 +12,10 @@ const GulpStreamAdaptor = require('./gulp-stream-adapter');
 const path = require('path');
 const child_process = require('child_process');
 const net = require('net');
-const SocketServer = require('../server');
+const DaemonManager = require('../server');
 
-function createSocketServer(config, callback){
-  let checkport = net.createServer((socket)=>{
-    socket.pipe("Hello world!")
-  }).listen(config.system.port);
 
-  checkport.on('error' , (err)=>{
-    // server was created by gulp. THIS MAY CHANGE IN FUTURE RELEASE
-    callback()
-  });
-  checkport.on('listening' , (err)=>{
-    checkport.close();
-    SocketServer.start(config).then(callback);
-  })
-}
+
 
 function onError(highlight, msg) {
   console.log(`'${highlight.yellow.bold}' ${msg}`)
@@ -35,17 +23,17 @@ function onError(highlight, msg) {
 
 module.exports = class AppRepl {
   constructor(config) {
+    introduction(commandList , config.system.processName);
     AppRepl._current = {
       running:new Set(),
       processList: new Set(),
       gulpTasks: new Set()
     }
-    createSocketServer(config, (result)=>{
-      this.socket = socketIOClient.connect(`http://localhost:${config.system.port}`);
-      this.socket.emit('update-vorpal');
-    });
+    let daemonType = config.system.socket ? 'socket' : 'process';
+
+    DaemonManager.use(daemonType , config);
+
     AppRepl.cwd = process.cwd();
-    greet(commandList , config.system.processName);
     this.commandList = commandList;
     this.socket = null;
     this.config = config;
@@ -61,7 +49,7 @@ module.exports = class AppRepl {
     this.exiting = false;
     this.exitTrys = 1;
     this.current = () => AppRepl._current;
-    console.log('changed current to Map!'.yellow)
+
     this.paths = {
       userScripts: path.resolve(__dirname , '../user-scripts'),
       repl: path.resolve(__dirname),
@@ -69,11 +57,7 @@ module.exports = class AppRepl {
       node_modules: path.resolve(__dirname , '../../node_modules'),
       tests: path.resolve(__dirname ,'../../tests')
     }
-    // this.current = {
-    //   running: [],
-    //   processes: [],
-    //   runningTasks: []
-    // };
+
 
     Commands.setup(config.system.processName);
     this.actions = new Actions(this);
@@ -112,7 +96,7 @@ module.exports = class AppRepl {
       return this.runProcess.bind(this, o, processName);
     }
     let processList = Object.keys(config.processes);
-    this.current.processes = processList.map(e => ({ name: e, script: config.processes[e].script || null }))
+    processList.forEach(e => AppRepl._current.processList.add({ name: e, script: config.processes[e].script || null }))
 
 
   }
@@ -155,40 +139,17 @@ module.exports = class AppRepl {
       process.exit(0);
     }
     console.log('Killing build system!'.yellow)
-    if (this.socket) {
-      this.socket.emit('kill');
-      this.socket.on('ready-to-exit',() =>{
-        this.socketClosed = true;
-        //process.exit();
-      });
-    }
 
-
-    //force kill
-    // setTimeout(()=>{
-    //   if(!this.socketClosed){
-    //     console.log('Did not recieve kill signal from socket'.yellow)
-    //   }
-    //   let c = 0;
-    //   let delay = 1000;
-    //   this.forceKiller = setInterval(()=>{
-    //     c += 1;
-    //     if(c === this.exitTrys){
-    //       if(!this.socketClosed){
-    //         console.log('force closeing without socket!'.red);
-    //         clearInterval(this.forceKiller);
-    //         process.exit(0);
-    //       }
-    //     }
-    //     console.log('Retrying in ${delay /1000}s')
-    //   },delay)
-    //
-    // },500);
-    SocketServer.stop(AppRepl._current.running).then(()=>{
-      process.exit(0)
+    DaemonManager.stop(AppRepl._current.running).then(()=>{
+      console.log('exit succsesfull!'.green)
+      process.exit(0);
     }).catch(err => {
+      //retry again... a maxiumuim of 3 times
+
       process.exit(0);
     })
+
+
   }
   updateCurrent(method , prop , newVal){
     if(method === 'add'){

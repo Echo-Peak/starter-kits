@@ -4,6 +4,8 @@ const showStatistics = require('./heap-stats');
 const colors = require('colors');
 const path = require('path');
 const socketIOClient =require('socket.io-client');
+let ProcessWrapper = require('./process-wrapper');
+
 let regex = {
   glob:/([\./]+[a-z- /*\.]+)/gmi,
   keypair:/([a-z\-0-9]+:[a-z\-0-9]+)()?/gmi
@@ -22,6 +24,9 @@ module.exports = class Commands {
   constructor(parent , commandList) {
     this.self = parent;
     this.Parent = parent;
+
+    ProcessWrapper = ProcessWrapper(this.self._config , this.self.getCurrent());
+
     this.clear = this.clear;
     this.processList = this.processList;
     this.exit = this.exit;
@@ -297,8 +302,26 @@ module.exports = class Commands {
     return new Promise((resolve , reject)=>{
       let shell = args.options.s ? true : false;
       let scriptName = args.script && args.script;
+      let list = [...this.self.getCurrent().processList];
+      if(!scriptName){
+        console.log('Showing list of scripts.'.yellow);
+        console.log(prettyjson.render(list));
+      }else{
+        let scripts = list.map(e => e.name);
+        if(!scripts.includes(scriptName)){
+          console.log(`${`${scriptName}`.yellow} is not found in build-config.yml as a script!`)
+          return
+        }
+        ProcessWrapper.wrap(scriptName ,this.self._config.system, args.args).then((ps)=>{
+          this.getCurrent().running.add(ps);
+          console.log(`running ${scriptName} | PID:${ps.pid} id:${ps.id}`)
+        }).catch(err => {
+          console.log(`could not run '${scriptName}'`.yellow);
+          console.log(err);
+        })
 
-      console.log(shell , scriptName , args)
+      }
+
       resolve()
     })
   }

@@ -2,7 +2,7 @@ let socketIO = require('socket.io');
 let http = require('http');
 const colors = require('colors');
 const child_process = require('child_process');
-
+let socketIOClient = require('socket.io-client');
 
 let killer = (bin, pid , id ,done) => {
   let defaultBin = 'node';
@@ -74,7 +74,7 @@ if(module.parent){
   let socketServer = null;
   let isConnected = false;
   module.exports = {
-    start(config){
+    startSocketServer(config){
       return new Promise((resolve ,reject)=>{
         if(socketServer){
           reject()
@@ -102,6 +102,14 @@ if(module.parent){
         }
         socketServer.kill(running).then(resolve);
       })
+    },
+    use(daemonType , config){
+      if(daemonType === 'socket'){
+        this.startSocketServer(config).then(()=>{
+          let socket = socketIOClient.connect(`http://localhost:${config.system.port}`);
+          socket.emit('update-vorpal')
+        });
+      }
     }
   }
 }else{
