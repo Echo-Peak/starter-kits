@@ -27,7 +27,7 @@ This boiler-plate is the bare miniumim basics of a basic-medium sized react appl
 
 **Clone** react-mobx-express
 ```
-git clone --depth 1 https://github.com/Echo-Peak/starter-kits react-mobx-express
+git clone -b master --depth 1 https://github.com/Echo-Peak/starter-kits react-mobx-express
 cd react-mobx-express  && git filter-branch --prune-empty --subdirectory-filter react-mobx-express HEAD
 ```
 
