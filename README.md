@@ -44,7 +44,8 @@ installation `npm i`
 `npm run app:iso` same as `app` but in isomorphic mode
 ***
 
-**full-react-typescript**
+### full-react-typescript
+
 This boiler-plate is the bare miniumim basics of a basic-medium sized react/typescript application.
 Typescript is used both on front-end & backend.
 
