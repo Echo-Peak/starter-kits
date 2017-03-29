@@ -46,6 +46,7 @@ installation `npm i`
 
 **full-react-typescript**
 This boiler-plate is the bare miniumim basics of a basic-medium sized react/typescript application.
+Typescript is used both on front-end & backend.
 
 **Dependencies**
 * webpack 2
